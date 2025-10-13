@@ -92,5 +92,5 @@ void loop() {
   if(!gotAcknowledgment) {
     Serial.printf("TIMEOUT,%lu\n", (unsigned long)millis());
   }
-
+  seq++;
 }
