@@ -65,7 +65,7 @@ void loop() {
                 
                 char validate[32];
                 int len_v = snprintf(validate, sizeof(validate), "SEQ:%lu", rseq);
-                uint16_t calc = CRC::Calculate(validate, sizeof(validate), CRC::CRC_16_CCITTFALSE());
+                uint16_t calc = CRC::Calculate(validate, len_v, CRC::CRC_16_CCITTFALSE());
 
                 if (calc == crc && rseq == seq) {
                   Serial.printf("ACK_OK,%lu,%lu,%lu\n", (unsigned long)millis(), tf - t0, rseq);
