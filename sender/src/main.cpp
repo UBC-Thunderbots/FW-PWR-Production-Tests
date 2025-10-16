@@ -5,7 +5,7 @@
 #include "CRC.h"
 
 #define TXD1 19
-#define RXD1 21
+#define RXD1 22
 
 int BAUD_RATE = 115200;
 
@@ -29,7 +29,7 @@ void loop() {
   int len = snprintf(payload, sizeof(payload), "SEQ:%lu", (unsigned long) seq);
 
   // Create the checksum for the message
-  uint16_t crc = CRC::Calculate(payload, sizeof(payload), CRC::CRC_16_CCITTFALSE());
+  uint16_t crc = CRC::Calculate(payload, len, CRC::CRC_16_CCITTFALSE());
   
   //Append the checksum to the message
   char msg[42];
@@ -90,7 +90,7 @@ void loop() {
     }
   }
   if(!gotAcknowledgment) {
-    Serial.printf("TIMEOUT,%lu\n", (unsigned long)millis());
+    Serial.printf("TIMEOUT,%lu,%lu\n", (unsigned long)millis(), seq);
   }
   seq++;
 }
