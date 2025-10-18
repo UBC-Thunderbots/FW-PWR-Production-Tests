@@ -1,7 +1,4 @@
---- Terminal on /dev/ttyUSB0 | 115200 8-N-1
---- Available filters and text transformations: colorize, debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
---- More details at https://bit.ly/pio-monitor-filters
---- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+Status, Time(ms), Sequence, Checksum
 RECV_OK, 121288, 11937, 52643
 RECV_OK, 121305, 11938, 15436
 RECV_OK, 121322, 11939, 11373
