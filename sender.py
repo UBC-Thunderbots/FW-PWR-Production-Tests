@@ -2,8 +2,7 @@ import serial
 import time
 import crcmod
 import csv
-import os
-
+import os, sys
 
 def main(serial_port="/dev/ttyAMA10", 
          print_to_screen=True, 
@@ -103,6 +102,17 @@ def main(serial_port="/dev/ttyAMA10",
             response_data = ['TIMEOUT', int(time.time()*1000), -1, seq]
         csv_data.append(response_data)
         seq += 1
+        
+        # Display a progress bar to monitor the messages being sent
+        progress = seq / num_messages
+        bar_length = 40
+        filled_length = int(bar_length * progress)
+        bar = "#" * filled_length + "-" * (bar_length - filled_length)
+
+        # Write the progress line
+        sys.stdout.write(f"\rSending messages: |{bar}| {seq}/{num_messages} ({progress*100:.1f}%)")
+        sys.stdout.flush()
+
     print("Finished Sending Messages")
     with open(filepath, mode='a', newline='') as f:
         writer = csv.writer(f)
