@@ -4,6 +4,14 @@ import crcmod
 import csv
 import os, sys
 
+def crc16(data: bytes | list[int]) -> int:
+    crc = 0xFFFF
+    for byte in data:
+        x = ((crc >> 8) ^ byte) & 0xFF
+        x ^= (x >> 4)
+        crc = ((crc << 8) ^ (x << 12) ^ (x << 5) ^ x) & 0xFFFF
+    return crc
+
 def main(serial_port="/dev/ttyAMA10", 
          print_to_screen=True, 
          timeout_ms=200, 
@@ -23,12 +31,11 @@ def main(serial_port="/dev/ttyAMA10",
 
 # --- CRC setup (CRC-16-CCITT-FALSE) ---
 # Polynomial 0x1021, initial value 0xFFFF, no reverse, no final XOR
-    crc16 = crcmod.predefined.Crc('ccitt-false')
+#    crc16 = crcmod.predefined.Crc('ccitt-false')
 
     print("Raspberry Pi UART Transmitter Ready")
 
 # Create an output directory to store the data if it doesn't exist
-    os.makedirs(os.path.dirname('out'), exist_ok=True)
     file_exists = os.path.isfile(filepath)
 
 # Add the header if the file doesn't exist
@@ -40,9 +47,9 @@ def main(serial_port="/dev/ttyAMA10",
     while seq < num_messages:
         # --- Build payload ---
         payload = f"SEQ:{seq}"
-        crc16.reset()
-        crc16.update(payload.encode('utf-8'))
-        crc = crc16.crcValue
+#        crc16.update(payload.encode('utf-8'))
+        crc = crc16(payload.encode('utf-8'))
+#        crc = crc16.crcValue
 
         msg = f"{payload}:{crc:04X}\n"
 
@@ -75,14 +82,19 @@ def main(serial_port="/dev/ttyAMA10",
                                     rseq = int(parts[1])
                                     rchk = int(parts[2], 16)
                                     validate = f"SEQ:{rseq}"
-                                    crc16.reset()
-                                    crc16.update(validate.encode('utf-8'))
-                                    calc = crc16.crcValue
+                                    calc = crc16(validate.encode('utf-8'))
+                                   # crc16.update(validate.encode('utf-8'))
+                                    # calc = crc16.crcValue
 
-                                    if calc == crc and rseq == seq and calc == rchk:
-                                        if print_to_screen:
-                                            print(f"ACK_OK,{int(tf)},{int(tf - t0)},{rseq}")
-                                        response_data = ['ACK_OK', int(tf), int(tf-t0), rseq]
+                                    if calc == rchk:
+                                        if rseq == seq:
+                                            if print_to_screen:
+                                                print(f"ACK_OK,{int(tf)},{int(tf - t0)},{rseq}")
+                                            response_data = ['ACK_OK', int(tf), int(tf-t0), rseq]
+                                        else: 
+                                            if print_to_screen:
+                                                print(f"ACK_OK/LATE,{int(tf)},{int(tf - t0)},{rseq}")
+                                            response_data = ['ACK_OK/LATE', int(tf), int(tf-t0), rseq, seq]
                                     else:
                                         if print_to_screen:
                                             print(f"ACK_BAD,{int(tf)},{int(tf - t0)},{rseq}")

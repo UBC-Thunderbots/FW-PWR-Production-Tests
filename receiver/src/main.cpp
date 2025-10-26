@@ -1,16 +1,32 @@
 #include <Arduino.h>
-#include <cstdint> 
 #include <stdio.h>
+#include <cstdint>
+#include <iostream>
+#include <vector>
 #include "CRC.h"
 
 // Define TX and RX pins for UART (change if needed)
-#define TXD1 19 
-#define RXD1 22 
+#define TXD1 22 
+#define RXD1 19 
 
-int BAUD_RATE = 115200;
+int BAUD_RATE = 600000;
 // Use Serial1 for UART communication
 HardwareSerial uart_port(1);
 uint32_t previousMsg = 0xFFFFFFFF;
+uint16_t crc16(const char* data, uint16_t length) {
+    uint8_t x;
+    uint16_t crc = 0xFFFF;
+    int i = 0;
+
+    while (length--)
+    {
+        x = static_cast<uint8_t>(crc >> 8u) ^ static_cast<uint8_t>(data[i++]);
+        x ^= static_cast<uint8_t>(x >> 4u);
+        crc = static_cast<uint16_t>((crc << 8u) ^ (x << 12u) ^ (x << 5u) ^ x);
+    }
+
+    return crc;
+}
 
 void setup() {
   Serial.begin(BAUD_RATE);
@@ -42,7 +58,7 @@ void loop() {
             // Validate if the checksum matches the message received
             char validate[32];
             int len_v = snprintf(validate, sizeof(validate), "SEQ:%lu", rseq);
-            uint16_t calc = CRC::Calculate(validate, len_v, CRC::CRC_16_CCITTFALSE());
+            uint16_t calc = crc16(validate, len_v); 
 
 
             if (calc != rcsm) {
