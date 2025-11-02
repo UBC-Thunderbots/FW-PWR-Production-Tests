@@ -11,6 +11,9 @@ const int BAUD_RATE = 115200;
 const unsigned long TIMEOUT = 5000;
 const int KICK_CHIP_DELAY = 5000;
 
+enum Mode { KICK, CHIP };
+volatile Mode currentMode;
+
 void IRAM_ATTR capsCharged();
 void IRAM_ATTR stopPulse();
 void sendPulse(const int pulse_length, const String& action);
@@ -100,8 +103,12 @@ void IRAM_ATTR capsCharged() {
 }
 
 void IRAM_ATTR stopPulse() {
-  digitalWrite(PIN_KICK, LOW);
-  digitalWrite(PIN_CHIP, LOW);
+  if (currentMode == KICK) {
+    digitalWrite(PIN_KICK, LOW);
+  }
+  else if (currentMode == CHIP) {
+    digitalWrite(PIN_CHIP, LOW); 
+  }
   xSemaphoreGiveFromISR(timer_lock, NULL); 
 }
 
@@ -113,9 +120,11 @@ void sendPulse(const int pulse_length, const String& action) {
 
     if (action.equalsIgnoreCase("Chip")){
       digitalWrite(PIN_CHIP, HIGH);
+      currentMode = CHIP;
 
     } else if (action.equalsIgnoreCase("kick")){
       digitalWrite(PIN_KICK, HIGH);
+      currentMode = KICK;
     }
     // Start the timer to last for the pulse length starting at 0. Do not repeat.
     timerAlarmEnable(timer);
