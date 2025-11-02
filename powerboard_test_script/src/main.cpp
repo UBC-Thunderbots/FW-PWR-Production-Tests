@@ -6,16 +6,21 @@ const int PIN_DONE = 25; // DONE
 const int PIN_CHIP = 32; // CHIP
 const int PIN_KICK = 33; // KICK
 
-const int MAX_PULSE_WIDTH = 4000; // Max Kick and Chip Pulse in [us] 
+const int MAX_PULSE_WIDTH = 10000; // Max Kick and Chip Pulse in [us] 
 const int BAUD_RATE = 115200;
+const unsigned long TIMEOUT = 5000;
+const int KICK_CHIP_DELAY = 5000;
 
 void IRAM_ATTR capsCharged();
 void IRAM_ATTR stopPulse();
 void sendPulse(const int pulse_length, const String& action);
 void chargeCaps();
 volatile bool caps_charged = false;
+volatile bool charging = false;
+volatile bool finished_charing = false;
 hw_timer_t *timer = NULL;
 SemaphoreHandle_t timer_lock = xSemaphoreCreateBinary();
+unsigned long t0;
 
 void setup() {
 
@@ -24,7 +29,7 @@ void setup() {
   pinMode(PIN_CHIP, OUTPUT);
   pinMode(PIN_KICK, OUTPUT);
 
-  attachInterrupt(PIN_DONE, capsCharged , RISING);
+ // attachInterrupt(PIN_DONE, capsCharged , RISING);
   digitalWrite(PIN_KICK, LOW);
   digitalWrite(PIN_CHIP, LOW);
   digitalWrite(PIN_CHARGE, LOW);
@@ -44,14 +49,21 @@ void loop() {
     input.trim();
     if (input.equalsIgnoreCase("charge")){
       Serial.println("Charging the capacitors...");
+      t0 = millis();
       chargeCaps();
+      charging = true;
     } else if (input.equalsIgnoreCase("kick") || input.equalsIgnoreCase("chip")){
       if (caps_charged){
         int pulse_width = MAX_PULSE_WIDTH + 1;
+        String pulse = "";
+        Serial.println("Enter your pulse length");
         while (pulse_width > MAX_PULSE_WIDTH || pulse_width < 1) {
-          Serial.println("Enter your pulse length");
-          int pulse_width = Serial.parseInt();
+          pulse = Serial.readStringUntil('\n');
+          pulse.trim();
+          pulse_width = pulse.toInt();
         }
+        Serial.printf("Sending Pulse of length %d us in %d seconds\n", pulse_width, KICK_CHIP_DELAY/1000);
+        delay(KICK_CHIP_DELAY);
         caps_charged = false;
         sendPulse(pulse_width, input);
       } else {
@@ -61,23 +73,35 @@ void loop() {
       Serial.println("INVALID INPUT");
     }
   }
-
+  if (finished_charing) {
+    finished_charing = false;
+    Serial.println("Capacitors are charged");
+  }
+  if (millis() - t0 > TIMEOUT && charging) {
+    digitalWrite(PIN_CHARGE, LOW);
+    Serial.println("Charging timed out...");
+    charging = false;
+  }
 }
 
 void chargeCaps() {
   digitalWrite(PIN_CHARGE,HIGH);
+  attachInterrupt(PIN_DONE, capsCharged, RISING);
 }
 
 void IRAM_ATTR capsCharged() {
   digitalWrite(PIN_CHARGE, LOW);
   caps_charged = true;
-  Serial.println("Capacitors are charged");
+  charging = false;
+  finished_charing = true;
+  // Detach to prevent boucing of signal affecting state
+  detachInterrupt(PIN_DONE);
 }
 
 void IRAM_ATTR stopPulse() {
   digitalWrite(PIN_KICK, LOW);
   digitalWrite(PIN_CHIP, LOW);
-  xSemaphoreGive(timer_lock);
+  xSemaphoreGiveFromISR(timer_lock, NULL); 
 }
 
 
