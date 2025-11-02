@@ -86,6 +86,7 @@ void loop() {
 
 void chargeCaps() {
   digitalWrite(PIN_CHARGE,HIGH);
+  // TODO: the referenced code uses when the done pin is low (falling edge). Check the datasheet for this chip
   attachInterrupt(PIN_DONE, capsCharged, RISING);
 }
 
