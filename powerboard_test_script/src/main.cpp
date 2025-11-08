@@ -12,7 +12,7 @@ const unsigned long TIMEOUT = 5000;
 const int KICK_CHIP_DELAY = 5000;
 
 enum Mode { KICK, CHIP };
-volatile Mode currentMode;
+volatile Mode current_mode;
 
 void IRAM_ATTR capsCharged();
 void IRAM_ATTR stopPulse();
@@ -28,7 +28,7 @@ unsigned long t0;
 void setup() {
 
   pinMode(PIN_CHARGE, OUTPUT);
-  pinMode(PIN_DONE, INPUT_PULLDOWN);
+  pinMode(PIN_DONE, INPUT_PULLUP);
   pinMode(PIN_CHIP, OUTPUT);
   pinMode(PIN_KICK, OUTPUT);
 
@@ -90,7 +90,7 @@ void loop() {
 void chargeCaps() {
   digitalWrite(PIN_CHARGE,HIGH);
   // TODO: the referenced code uses when the done pin is low (falling edge). Check the datasheet for this chip
-  attachInterrupt(PIN_DONE, capsCharged, RISING);
+  attachInterrupt(PIN_DONE, capsCharged, FALLING);
 }
 
 void IRAM_ATTR capsCharged() {
@@ -103,10 +103,10 @@ void IRAM_ATTR capsCharged() {
 }
 
 void IRAM_ATTR stopPulse() {
-  if (currentMode == KICK) {
+  if (current_mode == KICK) {
     digitalWrite(PIN_KICK, LOW);
   }
-  else if (currentMode == CHIP) {
+  else if (current_mode == CHIP) {
     digitalWrite(PIN_CHIP, LOW); 
   }
   xSemaphoreGiveFromISR(timer_lock, NULL); 
@@ -120,11 +120,11 @@ void sendPulse(const int pulse_length, const String& action) {
 
     if (action.equalsIgnoreCase("Chip")){
       digitalWrite(PIN_CHIP, HIGH);
-      currentMode = CHIP;
+      current_mode = CHIP;
 
     } else if (action.equalsIgnoreCase("kick")){
       digitalWrite(PIN_KICK, HIGH);
-      currentMode = KICK;
+      current_mode = KICK;
     }
     // Start the timer to last for the pulse length starting at 0. Do not repeat.
     timerAlarmEnable(timer);
